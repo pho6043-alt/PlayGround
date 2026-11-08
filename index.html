@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+<meta name="theme-color" content="#0b0a12" />
+<meta name="description" content="Gravewake — a dark fantasy survival roguelike. Survive the Umbral Tide for 30 minutes." />
+<title>GRAVEWAKE — Survive the Umbral Tide</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%230b0a12'/%3E%3Cpath d='M16 4l3.5 8.5L28 16l-8.5 3.5L16 28l-3.5-8.5L4 16l8.5-3.5z' fill='%23b98cff'/%3E%3Ccircle cx='16' cy='16' r='3' fill='%23ffe9a8'/%3E%3C/svg%3E" />
+<link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+<div id="app">
+  <canvas id="game" aria-label="Gravewake game view"></canvas>
+  <div id="vignette" aria-hidden="true"></div>
+  <div id="scanlines" aria-hidden="true"></div>
+
+  <!-- ============ HUD ============ -->
+  <div id="hud" class="hidden" aria-live="off">
+    <div class="hud-top">
+      <div class="xp-row">
+        <div class="xp-track"><div id="xpFill" class="xp-fill"></div><div id="xpShine" class="xp-shine"></div></div>
+        <div id="levelBadge" class="level-badge"><span class="lv-label">LV</span><span id="levelNum">1</span></div>
+      </div>
+      <div class="top-row">
+        <div class="hud-left">
+          <div id="timer" class="timer">00:00</div>
+          <div id="zoneName" class="zone-name">THE HOLLOW GROVE</div>
+        </div>
+        <div class="hud-right">
+          <div class="kill-chip" title="Enemies slain">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2l2.6 6.4L21 11l-6.4 2.6L12 20l-2.6-6.4L3 11l6.4-2.6z"/></svg>
+            <span id="killCount">0</span>
+          </div>
+          <button id="pauseBtn" class="icon-btn" aria-label="Pause game">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg>
+          </button>
+        </div>
+      </div>
+      <div id="bossBar" class="boss-bar hidden">
+        <div class="boss-head"><span id="bossName">THE BONE TYRANT</span><span id="bossHpText"></span></div>
+        <div class="boss-track"><div id="bossFill" class="boss-fill"></div></div>
+      </div>
+      <div id="toast" class="toast" role="status"></div>
+    </div>
+
+    <div class="hud-bottom">
+      <div class="health-block">
+        <div class="portrait-frame"><canvas id="portrait" width="32" height="36"></canvas></div>
+        <div class="health-bars">
+          <div class="hp-track">
+            <div id="hpFill" class="hp-fill"></div>
+            <span id="hpText" class="hp-text">100 / 100</span>
+          </div>
+          <div id="buffRow" class="buff-row"></div>
+        </div>
+      </div>
+      <div id="weaponRow" class="weapon-row"></div>
+    </div>
+
+    <div id="joystick" class="joystick hidden" aria-hidden="true">
+      <div class="joy-base"></div>
+      <div id="stick" class="joy-stick"></div>
+    </div>
+    <div id="touchHint" class="touch-hint hidden">DRAG ANYWHERE TO MOVE</div>
+  </div>
+
+  <!-- ============ MAIN MENU ============ -->
+  <div id="menu" class="screen menu-screen">
+    <div class="menu-shade"></div>
+    <div class="menu-inner">
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 64 64"><path d="M32 3l7.2 17.8L57 28l-17.8 7.2L32 53l-7.2-17.8L7 28l17.8-7.2z" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="32" cy="28" r="5.5" fill="currentColor"/></svg>
+        </div>
+        <h1 class="game-title">GRAVEWAKE</h1>
+        <p class="tagline">SURVIVE THE UMBRAL TIDE <span class="dot">·</span> 30 MINUTES TO DAWN</p>
+      </div>
+
+      <div class="menu-panel">
+        <div class="panel-label"><span>CHOOSE YOUR SURVIVOR</span><span class="rule"></span></div>
+        <div id="charSelect" class="char-select" role="radiogroup" aria-label="Choose a survivor"></div>
+
+        <div class="menu-actions">
+          <button id="startBtn" class="btn btn-primary btn-hero" aria-label="Start Game">
+            <span class="btn-glint"></span>
+            <span class="btn-label">START GAME</span>
+            <span class="btn-sub">ENTER THE NIGHT</span>
+          </button>
+          <div class="menu-side">
+            <button id="settingsBtn" class="btn btn-ghost">SETTINGS</button>
+            <button id="howBtn" class="btn btn-ghost">HOW TO PLAY</button>
+          </div>
+        </div>
+        <div class="menu-foot">
+          <span id="bestRecord">NO RUNS YET</span>
+          <span class="sep">◆</span>
+          <span>v1.0 · ORIGINAL PIXEL ART &amp; SOUND</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ LEVEL UP ============ -->
+  <div id="levelup" class="screen overlay hidden">
+    <div class="overlay-glow"></div>
+    <div class="levelup-inner">
+      <div class="levelup-head">
+        <div class="lvl-sigil">✦</div>
+        <h2>LEVEL <span id="lvlNum">2</span></h2>
+        <p>CHOOSE A BLESSING</p>
+      </div>
+      <div id="upgradeCards" class="upgrade-cards"></div>
+      <div class="levelup-foot">
+        <button id="rerollBtn" class="btn btn-small btn-ghost">REROLL <span id="rerollCount" class="reroll-count">1</span></button>
+        <span class="hint">PRESS 1 · 2 · 3 TO CHOOSE</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ PAUSE ============ -->
+  <div id="pause" class="screen overlay hidden">
+    <div class="modal-card">
+      <div class="modal-head">
+        <h2>PAUSED</h2>
+        <p>THE NIGHT HOLDS ITS BREATH</p>
+      </div>
+      <div class="run-stats" id="pauseStats"></div>
+      <div class="modal-actions">
+        <button id="resumeBtn" class="btn btn-primary">RESUME</button>
+        <button id="pauseSettingsBtn" class="btn btn-ghost">SETTINGS</button>
+        <button id="restartBtn" class="btn btn-ghost">RESTART RUN</button>
+        <button id="quitBtn" class="btn btn-danger">QUIT TO MENU</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ SETTINGS ============ -->
+  <div id="settings" class="screen overlay hidden">
+    <div class="modal-card settings-card">
+      <div class="modal-head">
+        <h2>SETTINGS</h2>
+        <p>TUNE THE EXPERIENCE</p>
+      </div>
+      <div class="settings-list">
+        <label class="setting-row">
+          <span>Music</span>
+          <input id="musicVol" type="range" min="0" max="100" value="55" aria-label="Music volume" />
+          <output id="musicVolOut">55</output>
+        </label>
+        <label class="setting-row">
+          <span>Sound effects</span>
+          <input id="sfxVol" type="range" min="0" max="100" value="80" aria-label="Sound effects volume" />
+          <output id="sfxVolOut">80</output>
+        </label>
+        <label class="setting-row">
+          <span>Screen shake</span>
+          <input id="shakeToggle" class="switch" type="checkbox" checked />
+        </label>
+        <label class="setting-row">
+          <span>Damage numbers</span>
+          <input id="dmgToggle" class="switch" type="checkbox" checked />
+        </label>
+        <label class="setting-row">
+          <span>Particle quality</span>
+          <select id="qualitySelect" class="select">
+            <option value="high">High</option>
+            <option value="low">Performance</option>
+          </select>
+        </label>
+        <label class="setting-row">
+          <span>Show touch joystick</span>
+          <select id="joystickSelect" class="select">
+            <option value="auto">Auto</option>
+            <option value="always">Always</option>
+            <option value="never">Never</option>
+          </select>
+        </label>
+      </div>
+      <div class="modal-actions">
+        <button id="settingsClose" class="btn btn-primary">DONE</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ HOW TO PLAY ============ -->
+  <div id="how" class="screen overlay hidden">
+    <div class="modal-card how-card">
+      <div class="modal-head">
+        <h2>HOW TO PLAY</h2>
+        <p>SURVIVE UNTIL DAWN</p>
+      </div>
+      <div class="how-grid">
+        <div class="how-item"><span class="key">WASD</span><p>Move. Your weapons strike automatically.</p></div>
+        <div class="how-item"><span class="key">TOUCH</span><p>Drag anywhere on the left of the screen to move. Auto-attack is always on.</p></div>
+        <div class="how-item"><span class="key">GEMS</span><p>Collect blue soul gems to level up. Stand near them to pull them in.</p></div>
+        <div class="how-item"><span class="key">CHOOSE</span><p>Pick 1 of 3 blessings each level. Build a weapon arsenal and evolve it.</p></div>
+        <div class="how-item"><span class="key">30:00</span><p>Survive 30 minutes. Bosses emerge every 5 minutes. The final hour is darkest.</p></div>
+        <div class="how-item"><span class="key">ESC</span><p>Pause the game. Press 1–3 to choose upgrades quickly.</p></div>
+      </div>
+      <div class="modal-actions">
+        <button id="howClose" class="btn btn-primary">UNDERSTOOD</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ END SCREEN ============ -->
+  <div id="end" class="screen overlay hidden">
+    <div class="end-glow"></div>
+    <div class="end-inner">
+      <div id="endSigil" class="end-sigil">☠</div>
+      <h2 id="endTitle">YOU FELL</h2>
+      <p id="endSubtitle">The Umbral Tide takes another soul.</p>
+      <div id="endStats" class="end-stats"></div>
+      <div class="end-actions">
+        <button id="retryBtn" class="btn btn-primary">TRY AGAIN</button>
+        <button id="endMenuBtn" class="btn btn-ghost">MAIN MENU</button>
+      </div>
+      <p id="newBest" class="new-best hidden">◆ NEW RECORD ◆</p>
+    </div>
+  </div>
+
+  <div id="rotateHint" class="rotate-hint hidden">Rotate your device for a wider view of the night.</div>
+</div>
+<script type="module" src="./src/main.js"></script>
+</body>
+</html>
